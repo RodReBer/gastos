@@ -6,43 +6,31 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/hooks/use-auth"
-import { useState, useEffect } from "react"
-import useSWR from "swr"
-import { fetcher } from "@/lib/utils/fetcher"
+import { useSettings } from "@/lib/contexts/settings-context"
+import { useState } from "react"
 
 export default function SettingsPage() {
-  const { user, isLoading } = useAuth()
-  const { data: settings, mutate } = useSWR("/api/user/settings", fetcher)
-  const [language, setLanguage] = useState("es")
-  const [currency, setCurrency] = useState("UYU")
+  const { user, isLoading: authLoading } = useAuth()
+  const { language, currency, setLanguage, setCurrency, isLoading: settingsLoading } = useSettings()
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (settings) {
-      setLanguage(settings.language || "es")
-      setCurrency(settings.currency || "UYU")
-    }
-  }, [settings])
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      await fetch("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language, currency }),
-      })
-      mutate()
-      alert("Configuración guardada exitosamente")
+      // Los cambios ya se guardan automáticamente cuando se seleccionan
+      // Pero podemos mostrar un mensaje de confirmación
+      setTimeout(() => {
+        alert("Configuración guardada exitosamente")
+        setSaving(false)
+      }, 500)
     } catch (error) {
       console.error("Error saving settings:", error)
       alert("Error al guardar la configuración")
-    } finally {
       setSaving(false)
     }
   }
 
-  if (isLoading) {
+  if (authLoading || settingsLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -113,10 +101,10 @@ export default function SettingsPage() {
                   <SelectItem value="BRL">🇧🇷 Real Brasileño (BRL)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">
+                Los cambios se guardan automáticamente
+              </p>
             </div>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving ? "Guardando..." : "Guardar Configuración"}
-            </Button>
           </CardContent>
         </Card>
       </div>

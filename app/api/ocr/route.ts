@@ -41,12 +41,18 @@ Campos requeridos:
 - invoiceNumber: Número de factura/recibo (string)
 - description: Breve descripción de productos/servicios (string, máximo 150 caracteres)
 - currency: Código de moneda (UYU, USD, EUR, ARS, BRL, etc.)
+- category: Categoría principal del gasto (string)
+- items: Array de productos/servicios con {name, quantity, unit_price, category}
+
+Categorías válidas: food, tech, transport, entertainment, health, clothing, home, services, utilities, education, other
 
 Reglas importantes:
 - Para amount, extrae SOLO el total final a pagar (el número más grande)
 - Si ves $, asume UYU (pesos uruguayos)
 - Si ves U$S o US$, usa USD
 - Si ves €, usa EUR
+- Categoriza según el tipo de establecimiento y productos
+- Extrae todos los items/productos visibles con sus cantidades y precios
 - Si un campo no está visible, usa un valor vacío "" o 0
 - Responde SOLO con JSON válido, sin markdown, sin explicaciones
 
@@ -57,7 +63,13 @@ Ejemplo de respuesta esperada:
   "date": "2025-11-08",
   "invoiceNumber": "FAC-00123",
   "description": "Compra de alimentos y productos de limpieza",
-  "currency": "UYU"
+  "currency": "UYU",
+  "category": "food",
+  "items": [
+    {"name": "Pan integral", "quantity": 2, "unit_price": 120, "category": "food"},
+    {"name": "Leche", "quantity": 1, "unit_price": 180, "category": "food"},
+    {"name": "Detergente", "quantity": 1, "unit_price": 250, "category": "home"}
+  ]
 }`
 
     const result = await model.generateContent([
@@ -89,12 +101,15 @@ Ejemplo de respuesta esperada:
 📅 Fecha: ${extracted.date || "N/A"}
 🔢 Número: ${extracted.invoiceNumber || "N/A"}
 💰 Monto: ${extracted.currency || ""} ${extracted.amount || 0}
-📝 ${extracted.description || ""}`,
+🏷️ Categoría: ${extracted.category || "other"}
+📝 ${extracted.description || ""}${extracted.items && extracted.items.length > 0 ? `\n\n📦 Items (${extracted.items.length}):` + extracted.items.map((item: any) => `\n  • ${item.name} (x${item.quantity || 1}) - ${item.unit_price || 0}`).join('') : ''}`,
         confidence: 0.95,
         vendor: extracted.vendor || "",
         amount: parseFloat(extracted.amount) || 0,
         date: extracted.date || new Date().toISOString().split("T")[0],
         invoiceNumber: extracted.invoiceNumber || "",
+        category: extracted.category || "other",
+        items: extracted.items || [],
       },
     })
   } catch (error) {

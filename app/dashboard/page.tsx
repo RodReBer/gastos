@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+import { CategoryChart } from "@/components/charts/category-chart"
 import Link from "next/link"
 import useSWR from "swr"
 import { fetcher } from "@/lib/utils/fetcher"
@@ -17,6 +18,7 @@ import { TrendingUp, TrendingDown, DollarSign, CreditCard, AlertCircle } from "l
 export default function DashboardPage() {
   const { user } = useAuth()
   const { data: stats, mutate } = useSWR("/api/dashboard/stats", fetcher)
+  const { data: categoryData } = useSWR("/api/dashboard/categories", fetcher)
   const [income, setIncome] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -216,6 +218,13 @@ export default function DashboardPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Gráfico de Categorías - NUEVO */}
+        <CategoryChart 
+          data={categoryData?.data}
+          title="Gastos por Categoría"
+          description="Distribución de tus gastos este mes"
+        />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base md:text-lg">Gastos Mensuales (últimos 6 meses)</CardTitle>
@@ -235,7 +244,10 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Daily Trends */}
+      <div className="grid grid-cols-1 gap-4 md:gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base md:text-lg">Gastos Diarios (últimos 30 días)</CardTitle>

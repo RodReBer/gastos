@@ -6,6 +6,13 @@ export interface OCRResult {
   amount?: number
   date?: string
   invoiceNumber?: string
+  category?: string
+  items?: Array<{
+    name: string
+    quantity: number
+    unit_price: number
+    category?: string
+  }>
 }
 
 class OCRService {

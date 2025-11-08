@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CURRENCIES, API_ROUTES } from "@/lib/constants"
+import { useSettings } from "@/lib/contexts/settings-context"
 
 const invoiceSchema = z.object({
   vendor_name: z.string().min(1, "Vendor name is required"),
   amount: z.coerce.number().min(0, "Amount must be positive"),
-  currency: z.string().default("USD"),
+  currency: z.string(),
   invoice_date: z.string().min(1, "Invoice date is required"),
   invoice_number: z.string().optional(),
   description: z.string().optional(),
@@ -31,14 +32,22 @@ interface InvoiceFormProps {
 export function InvoiceForm({ onSuccess, initialData }: InvoiceFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { currency: userCurrency } = useSettings()
 
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      currency: "USD",
+      currency: userCurrency || "UYU",
       ...initialData,
     },
   })
+
+  // Actualizar la moneda cuando se carguen los settings
+  useEffect(() => {
+    if (userCurrency && !initialData?.currency) {
+      form.setValue("currency", userCurrency)
+    }
+  }, [userCurrency, form, initialData])
 
   async function onSubmit(data: InvoiceFormData) {
     setIsLoading(true)

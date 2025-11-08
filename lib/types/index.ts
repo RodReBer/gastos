@@ -20,9 +20,20 @@ export interface Invoice {
   image_url: string | null
   extracted_text: string | null
   description: string | null
+  category: string | null
   status: InvoiceStatus
   created_at: string
   updated_at: string
+}
+
+export interface InvoiceItem {
+  id: string
+  invoice_id: string
+  name: string
+  quantity: number
+  unit_price: number
+  category: string | null
+  created_at: string
 }
 
 export interface Payment {
