@@ -37,9 +37,10 @@ export async function POST(req: Request) {
     const supabase = getSupabaseAdminClient()
 
     // Update user settings
-    const { error } = await (supabase
+    const { error } = await supabase
       .from("users")
-      .update({ language, currency } as any) as any)
+      // @ts-expect-error - Supabase admin client type inference issue
+      .update({ language, currency })
       .eq("auth0_id", session.user.sub)
 
     if (error) throw error

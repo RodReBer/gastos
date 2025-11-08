@@ -61,13 +61,15 @@ export async function POST(req: NextRequest) {
         if (totalPaid >= (invoice as any).amount) {
           await supabase
             .from('invoices')
-            .update({ status: 'paid' } as any)
+            // @ts-expect-error - Supabase admin client type inference issue
+            .update({ status: 'paid' })
             .eq('id', body.invoice_id)
         } else if (totalPaid > 0) {
           // Si hay un pago parcial, marcar como partial
           await supabase
             .from('invoices')
-            .update({ status: 'partial' } as any)
+            // @ts-expect-error - Supabase admin client type inference issue
+            .update({ status: 'partial' })
             .eq('id', body.invoice_id)
         }
       }

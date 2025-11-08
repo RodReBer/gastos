@@ -75,23 +75,23 @@ export default function DashboardPage() {
   const recommendation = stats ? getRecommendation() : null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Bienvenido, {user?.name || user?.email}</h1>
-        <p className="text-slate-600 mt-2">Panel de control de tus finanzas</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bienvenido, {user?.name || user?.email}</h1>
+        <p className="text-sm md:text-base text-slate-600 mt-1 md:mt-2">Panel de control de tus finanzas</p>
       </div>
 
       {/* Configurar Ingreso */}
       {(!stats?.monthly_income || stats.monthly_income === 0) && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <DollarSign className="h-4 w-4 md:h-5 md:w-5" />
               Configura tu ingreso mensual
             </CardTitle>
-            <CardDescription>Ingresa cuánto ganas al mes para obtener recomendaciones</CardDescription>
+            <CardDescription className="text-sm">Ingresa cuánto ganas al mes para obtener recomendaciones</CardDescription>
           </CardHeader>
-          <CardContent className="flex gap-3">
+          <CardContent className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <Label htmlFor="income">Ingreso Mensual ($)</Label>
               <Input
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                 onChange={(e) => setIncome(e.target.value)}
               />
             </div>
-            <Button onClick={handleSaveIncome} disabled={saving} className="mt-6">
+            <Button onClick={handleSaveIncome} disabled={saving} className="sm:mt-6">
               {saving ? "Guardando..." : "Guardar"}
             </Button>
           </CardContent>
@@ -118,23 +118,23 @@ export default function DashboardPage() {
           'border-blue-200 bg-blue-50'
         }>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="font-medium">
+          <AlertDescription className="font-medium text-sm">
             {recommendation.message}
           </AlertDescription>
         </Alert>
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
+          <CardHeader className="pb-2 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium text-slate-600 flex items-center gap-2">
+              <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
               Ingreso Mensual
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats?.monthly_income?.toFixed(2) || "0.00"}</div>
+            <div className="text-xl md:text-2xl font-bold">${stats?.monthly_income?.toFixed(2) || "0.00"}</div>
             {stats?.monthly_income > 0 && (
               <Button 
                 variant="link" 
@@ -157,31 +157,31 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
+          <CardHeader className="pb-2 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium text-slate-600 flex items-center gap-2">
+              <CreditCard className="h-3 w-3 md:h-4 md:w-4" />
               Gastos del Mes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats?.current_month_expenses || "0.00"}</div>
+            <div className="text-xl md:text-2xl font-bold">${stats?.current_month_expenses || "0.00"}</div>
             <p className="text-xs text-slate-500 mt-1">{stats?.percentage_used}% usado</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+          <CardHeader className="pb-2 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium text-slate-600 flex items-center gap-2">
               {parseFloat(stats?.remaining_budget || "0") >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-600" />
               )}
               Disponible
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${parseFloat(stats?.remaining_budget || "0") >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-xl md:text-2xl font-bold ${parseFloat(stats?.remaining_budget || "0") >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               ${stats?.remaining_budget || "0.00"}
             </div>
             <p className="text-xs text-slate-500 mt-1">Este mes</p>
@@ -189,11 +189,11 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Facturas</CardTitle>
+          <CardHeader className="pb-2 md:pb-3">
+            <CardTitle className="text-xs md:text-sm font-medium text-slate-600">Total Facturas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total_invoices || 0}</div>
+            <div className="text-xl md:text-2xl font-bold">{stats?.total_invoices || 0}</div>
             <p className="text-xs text-slate-500 mt-1">Todas</p>
           </CardContent>
         </Card>
@@ -215,20 +215,20 @@ export default function DashboardPage() {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Gastos Mensuales (últimos 6 meses)</CardTitle>
-            <CardDescription>Comparación de ingresos vs gastos</CardDescription>
+            <CardTitle className="text-base md:text-lg">Gastos Mensuales (últimos 6 meses)</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Comparación de ingresos vs gastos</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-2 md:p-6">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={stats?.monthly_data || []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Bar dataKey="income" fill="#22c55e" name="Ingreso" />
                 <Bar dataKey="expenses" fill="#ef4444" name="Gastos" />
               </BarChart>
@@ -238,18 +238,19 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Gastos Diarios (últimos 30 días)</CardTitle>
-            <CardDescription>Tendencia de tus gastos</CardDescription>
+            <CardTitle className="text-base md:text-lg">Gastos Diarios (últimos 30 días)</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Tendencia de tus gastos</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-2 md:p-6">
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={stats?.daily_data || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={(value) => new Date(value).getDate().toString()}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip 
                   labelFormatter={(value) => new Date(value).toLocaleDateString()}
                 />
@@ -261,13 +262,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Acciones Rápidas</CardTitle>
-            <CardDescription>Gestiona tus facturas</CardDescription>
+            <CardTitle className="text-base md:text-lg">Acciones Rápidas</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Gestiona tus facturas</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 md:space-y-3">
             <Link href="/dashboard/invoices/new" className="block">
               <Button className="w-full">Agregar Factura</Button>
             </Link>
@@ -281,8 +282,8 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Resumen</CardTitle>
-            <CardDescription>Tus números del mes</CardDescription>
+            <CardTitle className="text-base md:text-lg">Resumen</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Tus números del mes</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">

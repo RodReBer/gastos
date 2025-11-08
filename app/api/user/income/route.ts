@@ -36,7 +36,8 @@ export async function POST(req: Request) {
     // Update user income
     const { error } = await supabase
       .from("users")
-      .update({ monthly_income } as any)
+      // @ts-expect-error - Supabase admin client type inference issue
+      .update({ monthly_income })
       .eq("auth0_id", session.user.sub)
 
     if (error) throw error

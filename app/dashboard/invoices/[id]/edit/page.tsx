@@ -20,7 +20,7 @@ const invoiceSchema = z.object({
   invoice_number: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(["pending", "paid", "partial"]),
-  currency: z.string().default("USD"),
+  currency: z.string(),
 })
 
 type InvoiceFormData = z.infer<typeof invoiceSchema>
@@ -41,7 +41,7 @@ export default function EditInvoicePage() {
       invoice_number: "",
       description: "",
       status: "pending",
-      currency: "USD",
+      currency: "UYU",
     },
   })
 

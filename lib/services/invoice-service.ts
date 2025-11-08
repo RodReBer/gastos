@@ -37,9 +37,10 @@ class InvoiceService {
 
   async updateInvoice(id: string, userId: string, updates: Partial<Invoice>): Promise<Invoice> {
     const supabase = getSupabaseAdminClient()
-    const { data, error } = await (supabase
+    const { data, error } = await supabase
       .from("invoices")
-      .update(updates as any) as any)
+      // @ts-expect-error - Supabase admin client type inference issue
+      .update(updates)
       .eq("id", id)
       .eq("user_id", userId)
       .select()

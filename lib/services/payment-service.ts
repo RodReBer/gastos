@@ -41,9 +41,10 @@ class PaymentService {
 
   async updatePayment(id: string, userId: string, updates: Partial<Payment>): Promise<Payment> {
     const supabase = getSupabaseAdminClient()
-    const { data, error } = await (supabase
+    const { data, error } = await supabase
       .from("payments")
-      .update(updates as any) as any)
+      // @ts-expect-error - Supabase admin client type inference issue
+      .update(updates)
       .eq("id", id)
       .eq("user_id", userId)
       .select()
