@@ -4,8 +4,8 @@ ADD COLUMN IF NOT EXISTS category VARCHAR(50);
 
 -- Crear tabla para items de factura
 CREATE TABLE IF NOT EXISTS invoice_items (
-    id SERIAL PRIMARY KEY,
-    invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     quantity DECIMAL(10,2) DEFAULT 1,
     unit_price DECIMAL(10,2),
