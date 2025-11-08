@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(bytes)
     const base64 = buffer.toString("base64")
 
-    // Usar Gemini Pro Vision (modelo estable y disponible)
+    // Usar Gemini 1.5 Pro (modelo actual disponible)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro-vision",
+      model: "gemini-1.5-pro-latest",
     })
 
     const prompt = `Eres un experto en procesar facturas y recibos. Analiza esta imagen y extrae la información en formato JSON.
