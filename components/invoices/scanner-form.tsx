@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { FILE_CONFIG, API_ROUTES } from "@/lib/constants"
-import { ocrService } from "@/lib/services/ocr-service"
+import { ocrService } from "@/lib/services/ocr-service-gpt4"
 import { Spinner } from "@/components/ui/spinner"
 
 const scannerSchema = z.object({
