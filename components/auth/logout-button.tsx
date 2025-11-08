@@ -1,19 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/use-auth"
 
 export function LogoutButton() {
-  const handleLogout = () => {
-    // Primero eliminar las cookies del lado del cliente
-    document.cookie = 'id_token=; Max-Age=0; path=/;'
-    document.cookie = 'access_token=; Max-Age=0; path=/;'
-    
-    // Redirigir a Auth0 logout
-    window.location.href = "/api/auth/logout"
-  }
+  const { logout } = useAuth()
 
   return (
-    <Button variant="outline" onClick={handleLogout}>
+    <Button variant="outline" onClick={logout}>
       Logout
     </Button>
   )

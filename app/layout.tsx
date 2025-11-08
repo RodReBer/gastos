@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Auth0Provider } from '@auth0/nextjs-auth0/client'
 import './globals.css'
 
 import { Geist, Geist_Mono, Geist as V0_Font_Geist, Geist_Mono as V0_Font_Geist_Mono, Source_Serif_4 as V0_Font_Source_Serif_4 } from 'next/font/google'
@@ -40,9 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${_geist.variable} ${_geistMono.variable} font-sans antialiased`}>
-        <Auth0Provider>
-          {children}
-        </Auth0Provider>
+        {children}
       </body>
     </html>
   )

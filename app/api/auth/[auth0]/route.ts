@@ -28,11 +28,8 @@ export async function GET(
   if (action === 'logout') {
     console.log('Logging out user...')
     
-    const logoutUrl = `${process.env.AUTH0_ISSUER_BASE_URL}/v2/logout?` +
-      `client_id=${process.env.AUTH0_CLIENT_ID}&` +
-      `returnTo=${encodeURIComponent(process.env.AUTH0_BASE_URL || 'http://localhost:3000')}`
-    
-    const response = NextResponse.redirect(logoutUrl)
+    // Crear respuesta que redirige directamente a la página de login
+    const response = NextResponse.redirect(`${process.env.AUTH0_BASE_URL}/login`)
     
     // Eliminar las cookies de sesión estableciendo maxAge a 0
     response.cookies.set('access_token', '', {
@@ -51,7 +48,7 @@ export async function GET(
       path: '/',
     })
     
-    console.log('Cookies deleted, redirecting to Auth0 logout...')
+    console.log('Cookies deleted, redirecting to login page...')
     
     return response
   }
