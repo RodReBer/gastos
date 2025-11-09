@@ -11,11 +11,22 @@ export async function GET() {
 
     const supabase = getSupabaseAdminClient()
 
+    // Primero obtener el UUID del usuario desde auth0_id
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth0_id", session.user.sub)
+      .single()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
     // Obtener todas las facturas del usuario con categorías
     const { data: invoices, error } = await supabase
       .from("invoices")
       .select("amount, category, currency")
-      .eq("user_id", session.user.sub)
+      .eq("user_id", user.id)
       .eq("status", "pending")
 
     if (error) throw error
