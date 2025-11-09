@@ -19,7 +19,7 @@ export async function POST(
     // Obtener el usuario actual
     const { data: userData } = await supabase
       .from("users")
-      .select("id, email")
+      .select("id, email, monthly_income")
       .eq("auth0_id", session.user.sub)
       .single()
 
@@ -29,6 +29,7 @@ export async function POST(
 
     const userId = (userData as any).id
     const userEmail = (userData as any).email
+    const userMonthlyIncome = parseFloat((userData as any).monthly_income || 0)
 
     // Obtener la invitación
     const { data: invitation } = await supabase
@@ -93,7 +94,7 @@ export async function POST(
         group_id: inv.group_id,
         user_id: userId,
         role: "member",
-        monthly_income: 0,
+        monthly_income: userMonthlyIncome, // Usar el ingreso del usuario
       })
 
     if (memberError) throw memberError

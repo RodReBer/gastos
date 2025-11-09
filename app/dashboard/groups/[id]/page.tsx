@@ -583,7 +583,7 @@ export default function GroupDetailPage({
                       </span>
                     )}
                     <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                      {member.role === 'admin' ? '👑 Admin' : 'Miembro'}
+                      {member.role === 'admin' ? 'Admin' : 'Miembro'}
                     </Badge>
                   </div>
                 </div>

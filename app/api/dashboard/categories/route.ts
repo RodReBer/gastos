@@ -22,24 +22,50 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    const userId = (user as any).id
+
     // Obtener todas las facturas del usuario con categorías
-    const { data: invoices, error } = await supabase
+    const { data: invoices, error: invoicesError } = await supabase
       .from("invoices")
       .select("amount, category, currency")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("status", "pending")
 
-    if (error) throw error
+    if (invoicesError) throw invoicesError
+
+    // Obtener gastos de grupos (splits que debe pagar este usuario)
+    const { data: groupExpenses, error: groupError } = await (supabase as any)
+      .from("expense_splits")
+      .select(`
+        amount_owed,
+        expense:group_expenses (
+          category,
+          currency
+        )
+      `)
+      .eq("user_id", userId)
+
+    if (groupError) throw groupError
 
     // Agrupar por categoría
     const categoryTotals: Record<string, number> = {}
     
+    // Agregar facturas individuales
     invoices?.forEach((invoice: any) => {
       const category = invoice.category || "other"
       if (!categoryTotals[category]) {
         categoryTotals[category] = 0
       }
       categoryTotals[category] += parseFloat(invoice.amount) || 0
+    })
+
+    // Agregar gastos de grupos
+    groupExpenses?.forEach((split: any) => {
+      const category = split.expense?.category || "other"
+      if (!categoryTotals[category]) {
+        categoryTotals[category] = 0
+      }
+      categoryTotals[category] += parseFloat(split.amount_owed) || 0
     })
 
     // Convertir a array para la gráfica

@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     // Obtener el ID del usuario desde la tabla users
     const { data: userData } = await supabase
       .from("users")
-      .select("id")
+      .select("id, monthly_income")
       .eq("auth0_id", session.user.sub)
       .single()
 
@@ -102,6 +102,7 @@ export async function POST(req: Request) {
     }
 
     const userId = (userData as any).id
+    const userMonthlyIncome = parseFloat((userData as any).monthly_income || 0)
 
     // Crear el grupo
     const { data: group, error: groupError } = await supabase
@@ -129,7 +130,7 @@ export async function POST(req: Request) {
         group_id: groupId,
         user_id: userId,
         role: "admin",
-        monthly_income: 0,
+        monthly_income: userMonthlyIncome, // Usar el ingreso del usuario
       })
 
     if (memberError) throw memberError

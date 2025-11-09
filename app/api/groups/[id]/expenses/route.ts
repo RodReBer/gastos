@@ -227,6 +227,12 @@ export async function POST(
     // IMPORTANTE: El que pagó NO debe nada, los demás le deben su parte
     let splits: Array<{ user_id: string; amount_owed: number }> = []
 
+    console.log('[Group Expense] Split method:', group.split_method)
+    console.log('[Group Expense] Members with income:', members.map((m: any) => ({
+      user_id: m.user_id,
+      monthly_income: m.monthly_income
+    })))
+
     if (group.split_method === "equal") {
       // División igual entre TODOS los miembros (incluyendo el que pagó)
       const amountPerPerson = amount / members.length
@@ -234,15 +240,18 @@ export async function POST(
         user_id: member.user_id,
         amount_owed: amountPerPerson,
       }))
-    } else {
+    } else if (group.split_method === "proportional") {
       // División proporcional según ingresos
       const totalIncome = members.reduce(
-        (sum: number, m: any) => sum + (m.monthly_income || 0),
+        (sum: number, m: any) => sum + (parseFloat(m.monthly_income) || 0),
         0
       )
 
+      console.log('[Group Expense] Total income:', totalIncome)
+
       if (totalIncome === 0) {
         // Si no hay ingresos configurados, dividir igual
+        console.log('[Group Expense] No income configured, falling back to equal split')
         const amountPerPerson = amount / members.length
         splits = members.map((member: any) => ({
           user_id: member.user_id,
@@ -250,11 +259,24 @@ export async function POST(
         }))
       } else {
         // Dividir proporcionalmente
-        splits = members.map((member: any) => ({
-          user_id: member.user_id,
-          amount_owed: (amount * (member.monthly_income || 0)) / totalIncome,
-        }))
+        splits = members.map((member: any) => {
+          const memberIncome = parseFloat(member.monthly_income) || 0
+          const proportion = memberIncome / totalIncome
+          const amountOwed = amount * proportion
+          console.log(`[Group Expense] Member ${member.user_id}: income=${memberIncome}, proportion=${proportion}, owes=${amountOwed}`)
+          return {
+            user_id: member.user_id,
+            amount_owed: amountOwed,
+          }
+        })
       }
+    } else {
+      // Default to equal if method is not recognized
+      const amountPerPerson = amount / members.length
+      splits = members.map((member: any) => ({
+        user_id: member.user_id,
+        amount_owed: amountPerPerson,
+      }))
     }
 
     // Insertar las divisiones
