@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { FileText, CreditCard, BarChart3, Settings, X } from "lucide-react"
+import { FileText, CreditCard, BarChart3, Settings, X, Users } from "lucide-react"
 import { LogoutButton } from "@/components/auth/logout-button"
 import { Button } from "@/components/ui/button"
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: FileText },
   { href: "/dashboard/invoices", label: "Facturas", icon: FileText },
   { href: "/dashboard/payments", label: "Pagos", icon: CreditCard },
+  { href: "/dashboard/groups", label: "Grupos", icon: Users },
   { href: "/dashboard/reports", label: "Reportes", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Configuración", icon: Settings },
 ]

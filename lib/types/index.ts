@@ -46,6 +46,8 @@ export interface ExpenseGroup {
   split_method: 'equal' | 'proportional'
   created_at: string
   updated_at: string
+  member_count?: number // Populated from query
+  members?: GroupMember[] // Populated join
 }
 
 export interface GroupMember {

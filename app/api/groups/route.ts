@@ -12,25 +12,56 @@ export async function GET() {
 
     const supabase = getSupabaseAdminClient()
 
+    // Obtener el ID del usuario desde la tabla users
+    const { data: userData } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth0_id", session.user.sub)
+      .single()
+
+    if (!userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const userId = (userData as any).id
+
     // Obtener grupos donde el usuario es miembro
-    const { data: memberships, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await (supabase as any)
       .from("group_members")
       .select(`
-        *,
-        expense_groups (*)
+        role,
+        expense_groups (
+          id,
+          name,
+          description,
+          created_by,
+          currency,
+          split_method,
+          created_at,
+          updated_at
+        )
       `)
-      .eq("user_id", session.user.sub)
+      .eq("user_id", userId)
 
     if (memberError) throw memberError
 
-    // Formatear respuesta
-    const groups = memberships?.map((m: any) => ({
-      ...m.expense_groups,
-      role: m.role,
-      member_id: m.id
-    })) || []
+    // Para cada grupo, obtener el conteo de miembros
+    const groups = await Promise.all(
+      (memberships || []).map(async (m: any) => {
+        const { count } = await (supabase as any)
+          .from("group_members")
+          .select("*", { count: "exact", head: true })
+          .eq("group_id", m.expense_groups.id)
 
-    return NextResponse.json({ success: true, groups })
+        return {
+          ...m.expense_groups,
+          role: m.role,
+          member_count: count || 0,
+        }
+      })
+    )
+
+    return NextResponse.json(groups)
   } catch (error) {
     console.error("[Groups API] Error:", error)
     return NextResponse.json(
