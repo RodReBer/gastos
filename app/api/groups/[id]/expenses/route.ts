@@ -56,8 +56,8 @@ export async function GET(
         ),
         invoice:invoices (
           id,
-          vendor,
-          total_amount
+          vendor_name,
+          amount
         )
       `)
       .eq("group_id", groupId)
@@ -224,10 +224,11 @@ export async function POST(
     }
 
     // Calcular la división según el método del grupo
+    // IMPORTANTE: El que pagó NO debe nada, los demás le deben su parte
     let splits: Array<{ user_id: string; amount_owed: number }> = []
 
     if (group.split_method === "equal") {
-      // División igual
+      // División igual entre TODOS los miembros (incluyendo el que pagó)
       const amountPerPerson = amount / members.length
       splits = members.map((member: any) => ({
         user_id: member.user_id,
@@ -257,6 +258,8 @@ export async function POST(
     }
 
     // Insertar las divisiones
+    // El que pagó tiene is_paid=true (ya cubrió su parte pagando el total)
+    // Los demás tienen is_paid=false (le deben al que pagó)
     const { error: splitsError } = await (supabase as any)
       .from("expense_splits")
       .insert(
@@ -264,7 +267,7 @@ export async function POST(
           expense_id: expense.id,
           user_id: split.user_id,
           amount_owed: split.amount_owed,
-          is_paid: split.user_id === userId, // El que pagó ya tiene su parte cubierta
+          is_paid: split.user_id === userId, // Solo el que pagó ya está cubierto
           paid_at: split.user_id === userId ? new Date().toISOString() : null,
         }))
       )

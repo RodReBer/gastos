@@ -39,8 +39,24 @@ export async function GET() {
       .eq("user_id", userId)
       .eq("status", "completed")
 
+    // Get gastos de grupos (splits pendientes y pagados del usuario)
+    const { data: groupSplits } = await (supabase as any)
+      .from("expense_splits")
+      .select(`
+        *,
+        expense:group_expenses!inner (
+          amount,
+          expense_date,
+          description,
+          category
+        )
+      `)
+      .eq("user_id", userId)
+
     const totalPaid = payments?.reduce((sum: number, p: any) => sum + p.amount_paid, 0) || 0
     const totalInvoices = invoices?.reduce((sum: number, i: any) => sum + i.amount, 0) || 0
+    const totalGroupExpenses = groupSplits?.reduce((sum: number, s: any) => sum + s.amount_owed, 0) || 0
+    const pendingGroupPayments = groupSplits?.filter((s: any) => !s.is_paid).reduce((sum: number, s: any) => sum + s.amount_owed, 0) || 0
 
     // Calcular gastos por mes (últimos 6 meses)
     const monthlyExpenses: Record<string, number> = {}
@@ -60,6 +76,15 @@ export async function GET() {
       }
     })
 
+    // Agregar gastos de grupos a los totales mensuales
+    groupSplits?.forEach((split: any) => {
+      const date = new Date(split.expense.expense_date)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      if (monthlyExpenses[monthKey] !== undefined) {
+        monthlyExpenses[monthKey] += split.amount_owed
+      }
+    })
+
     // Calcular gastos por día (últimos 30 días)
     const dailyExpenses: Record<string, number> = {}
     for (let i = 29; i >= 0; i--) {
@@ -73,6 +98,14 @@ export async function GET() {
       const dayKey = inv.invoice_date
       if (dailyExpenses[dayKey] !== undefined) {
         dailyExpenses[dayKey] += inv.amount
+      }
+    })
+
+    // Agregar gastos de grupos a los totales diarios
+    groupSplits?.forEach((split: any) => {
+      const dayKey = split.expense.expense_date
+      if (dailyExpenses[dayKey] !== undefined) {
+        dailyExpenses[dayKey] += split.amount_owed
       }
     })
 
@@ -98,8 +131,11 @@ export async function GET() {
     return NextResponse.json({
       total_invoices: invoices?.length || 0,
       pending_payments: invoices?.filter((i: any) => i.status === 'pending').length || 0,
+      total_group_expenses: groupSplits?.length || 0,
+      pending_group_payments: groupSplits?.filter((s: any) => !s.is_paid).length || 0,
+      total_pending: ((totalInvoices - totalPaid) + pendingGroupPayments).toFixed(2),
+      total_expenses: (totalInvoices + totalGroupExpenses).toFixed(2),
       total_paid: totalPaid.toFixed(2),
-      total_expenses: totalInvoices.toFixed(2),
       monthly_income: monthlyIncome,
       current_month_expenses: currentMonthExpenses.toFixed(2),
       remaining_budget: remainingBudget.toFixed(2),

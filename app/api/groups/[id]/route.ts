@@ -75,3 +75,132 @@ export async function GET(
     )
   }
 }
+
+// PATCH /api/groups/[id] - Actualizar grupo (solo admin)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const supabase = getSupabaseAdminClient()
+    const { id: groupId } = await params
+    const body = await req.json()
+
+    // Obtener el ID del usuario
+    const { data: userData } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth0_id", session.user.sub)
+      .single()
+
+    if (!userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const userId = (userData as any).id
+
+    // Verificar que el usuario es admin del grupo
+    const { data: membership } = await (supabase as any)
+      .from("group_members")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", userId)
+      .single()
+
+    if (!membership || membership.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins can edit the group" },
+        { status: 403 }
+      )
+    }
+
+    // Actualizar el grupo
+    const { data: updatedGroup, error } = await (supabase as any)
+      .from("expense_groups")
+      .update({
+        name: body.name,
+        description: body.description,
+        currency: body.currency,
+        split_method: body.split_method,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", groupId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json(updatedGroup)
+  } catch (error: any) {
+    console.error("Error updating group:", error)
+    return NextResponse.json(
+      { error: error.message || "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/groups/[id] - Eliminar grupo (solo admin)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const supabase = getSupabaseAdminClient()
+    const { id: groupId } = await params
+
+    // Obtener el ID del usuario
+    const { data: userData } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth0_id", session.user.sub)
+      .single()
+
+    if (!userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const userId = (userData as any).id
+
+    // Verificar que el usuario es admin del grupo
+    const { data: membership } = await (supabase as any)
+      .from("group_members")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", userId)
+      .single()
+
+    if (!membership || membership.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins can delete the group" },
+        { status: 403 }
+      )
+    }
+
+    // Eliminar el grupo (CASCADE eliminará automáticamente miembros, gastos, etc.)
+    const { error } = await supabase
+      .from("expense_groups")
+      .delete()
+      .eq("id", groupId)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error("Error deleting group:", error)
+    return NextResponse.json(
+      { error: error.message || "Internal server error" },
+      { status: 500 }
+    )
+  }
+}

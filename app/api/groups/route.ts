@@ -134,7 +134,7 @@ export async function POST(req: Request) {
 
     if (memberError) throw memberError
 
-    return NextResponse.json({ success: true, group })
+    return NextResponse.json(group, { status: 201 })
   } catch (error) {
     console.error("[Groups API] Create error:", error)
     return NextResponse.json(

@@ -47,6 +47,7 @@ export interface ExpenseGroup {
   created_at: string
   updated_at: string
   member_count?: number // Populated from query
+  role?: 'admin' | 'member' // Current user's role in the group
   members?: GroupMember[] // Populated join
 }
 
