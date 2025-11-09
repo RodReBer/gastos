@@ -71,28 +71,7 @@ export async function POST(
       return NextResponse.json({ error: "Already paid" }, { status: 400 })
     }
 
-    // Crear un registro de pago en la tabla payments
-    // Esto vincula el pago del grupo con el sistema de pagos individual
-    const { data: payment, error: paymentError } = await (supabase as any)
-      .from("payments")
-      .insert({
-        user_id: userId,
-        invoice_id: null, // No está asociado a una factura individual
-        payment_date: new Date().toISOString().split('T')[0],
-        payment_type: "group_expense", // Nuevo tipo para gastos de grupo
-        amount_paid: split.amount_owed,
-        status: "completed",
-        notes: `Pago de gasto compartido: ${split.expense.description} (Grupo)`,
-      })
-      .select()
-      .single()
-
-    if (paymentError) {
-      console.error("Error creating payment:", paymentError)
-      // Continuar aunque falle el registro de pago
-    }
-
-    // Marcar el split como pagado
+    // Marcar el split como pagado primero
     const { data: updatedSplit, error: updateError } = await (supabase as any)
       .from("expense_splits")
       .update({
@@ -106,10 +85,41 @@ export async function POST(
 
     if (updateError) throw updateError
 
+    // Intentar crear un registro de pago en la tabla payments
+    // NOTA: Esto requiere que invoice_id sea nullable en la base de datos
+    // Si falla, el split ya está marcado como pagado de todas formas
+    let payment = null
+    try {
+      const { data: paymentData, error: paymentError } = await (supabase as any)
+        .from("payments")
+        .insert({
+          user_id: userId,
+          invoice_id: null, // No está asociado a una factura individual
+          payment_date: new Date().toISOString().split('T')[0],
+          payment_type: "group_expense", // Tipo para gastos de grupo
+          amount_paid: split.amount_owed,
+          status: "completed",
+          notes: `Pago de gasto compartido: ${split.expense.description} (Grupo)`,
+        })
+        .select()
+        .single()
+
+      if (paymentError) {
+        console.error("Error creating payment record:", paymentError)
+        console.log("⚠️  Split marked as paid, but payment record failed. Run FIX_PAYMENTS_INVOICE_ID.sql to allow null invoice_id")
+      } else {
+        payment = paymentData
+      }
+    } catch (err) {
+      console.error("Payment creation failed:", err)
+    }
+
     return NextResponse.json({
       split: updatedSplit,
       payment: payment,
-      message: "Pago registrado exitosamente"
+      message: payment 
+        ? "Pago registrado exitosamente" 
+        : "Pago marcado como pagado (sin registro de pago individual)"
     })
   } catch (error: any) {
     console.error("Error marking split as paid:", error)
