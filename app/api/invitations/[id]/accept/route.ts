@@ -5,7 +5,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/server"
 // POST /api/invitations/[id]/accept - Aceptar una invitación
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -14,7 +14,7 @@ export async function POST(
     }
 
     const supabase = getSupabaseAdminClient()
-    const invitationId = params.id
+    const { id: invitationId } = await params
 
     // Obtener el usuario actual
     const { data: userData } = await supabase

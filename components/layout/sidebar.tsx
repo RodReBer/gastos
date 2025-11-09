@@ -2,10 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import useSWR from "swr"
 import { cn } from "@/lib/utils"
 import { FileText, CreditCard, BarChart3, Settings, X, Users } from "lucide-react"
 import { LogoutButton } from "@/components/auth/logout-button"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { fetcher } from "@/lib/utils/fetcher"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: FileText },
@@ -23,6 +26,13 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
+  
+  // Fetch pending invitations count
+  const { data: invitations } = useSWR("/api/invitations", fetcher, {
+    refreshInterval: 30000, // Refresh every 30 seconds
+  })
+  
+  const pendingCount = invitations?.length || 0
 
   return (
     <>
@@ -72,7 +82,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 )}
               >
                 <Icon size={18} className="md:w-5 md:h-5" />
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/dashboard/groups" && pendingCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {pendingCount}
+                  </Badge>
+                )}
               </Link>
             )
           })}

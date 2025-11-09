@@ -4,7 +4,9 @@ import { useState } from "react"
 import { use } from "react"
 import useSWR from "swr"
 import Link from "next/link"
-import { ArrowLeft, UserPlus, Plus, Users, DollarSign } from "lucide-react"
+import { ArrowLeft, UserPlus, Plus, Users, DollarSign, CheckCircle, XCircle, Calendar } from "lucide-react"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { fetcher } from "@/lib/utils/fetcher"
-import type { ExpenseGroup, GroupMember } from "@/lib/types"
+import { ExpenseForm } from "@/components/groups/expense-form"
+import type { ExpenseGroup, GroupExpense } from "@/lib/types"
 
 export default function GroupDetailPage({
   params,
@@ -25,12 +28,26 @@ export default function GroupDetailPage({
   const [inviteEmail, setInviteEmail] = useState("")
   const [isInviting, setIsInviting] = useState(false)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false)
 
   // Fetch group data
-  const { data: group, isLoading } = useSWR<ExpenseGroup>(
+  const { data: group, isLoading, mutate } = useSWR<ExpenseGroup>(
     `/api/groups/${resolvedParams.id}`,
     fetcher
   )
+
+  // Fetch expenses
+  const { data: expenses, mutate: mutateExpenses } = useSWR<GroupExpense[]>(
+    `/api/groups/${resolvedParams.id}/expenses`,
+    fetcher
+  )
+
+  // Calculate totals
+  const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0
+  const myBalance = expenses?.reduce((sum, exp) => {
+    const mySplit = exp.splits?.find((s: any) => !s.is_paid)
+    return sum + (mySplit?.amount_owed || 0)
+  }, 0) || 0
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,6 +72,7 @@ export default function GroupDetailPage({
 
       setInviteEmail("")
       setInviteDialogOpen(false)
+      mutate() // Refresh group data
     } catch (error: any) {
       toast({
         title: "Error",
@@ -188,39 +206,25 @@ export default function GroupDetailPage({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {group.currency} 0
+              {group.currency} {totalExpenses.toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">Próximamente</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Mi Balance</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {group.currency} 0
+            <div className={`text-2xl font-bold ${myBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {group.currency} {Math.abs(myBalance).toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">Próximamente</p>
+            <p className="text-xs text-muted-foreground">
+              {myBalance > 0 ? 'Debés' : myBalance < 0 ? 'Te deben' : 'Estás al día'}
+            </p>
           </CardContent>
         </Card>
       </div>
-
-      {/* Miembros */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Miembros del Grupo</CardTitle>
-          <CardDescription>
-            Personas que forman parte de este grupo
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-gray-500">
-            Cargando miembros... (próximamente)
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Gastos */}
       <Card>
@@ -232,15 +236,108 @@ export default function GroupDetailPage({
                 Gastos del grupo y división entre miembros
               </CardDescription>
             </div>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Agregar Gasto
-            </Button>
+            <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Agregar Gasto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Agregar Gasto Compartido</DialogTitle>
+                  <DialogDescription>
+                    El gasto se dividirá automáticamente entre los miembros del grupo
+                  </DialogDescription>
+                </DialogHeader>
+                <ExpenseForm
+                  groupId={resolvedParams.id}
+                  currency={group.currency}
+                  onSuccess={() => {
+                    setExpenseDialogOpen(false)
+                    mutateExpenses()
+                    mutate()
+                  }}
+                  onCancel={() => setExpenseDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
+          {!expenses || expenses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No hay gastos registrados todavía.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {expenses.map((expense) => (
+                <div
+                  key={expense.id}
+                  className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{expense.description}</h4>
+                      {expense.is_recurring && (
+                        <Badge variant="secondary" className="text-xs">
+                          📅 Recurrente
+                        </Badge>
+                      )}
+                      {expense.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {expense.category}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <span>Pagado por: {(expense as any).paid_by_user?.email || 'Usuario'}</span>
+                      <span>•</span>
+                      <span>{format(new Date(expense.expense_date), "PPP", { locale: es })}</span>
+                    </div>
+                    {expense.notes && (
+                      <p className="text-sm text-gray-500 mt-1">{expense.notes}</p>
+                    )}
+                    {/* División */}
+                    <div className="mt-3 space-y-1">
+                      {expense.splits?.map((split: any) => (
+                        <div key={split.id} className="flex items-center gap-2 text-xs">
+                          {split.is_paid ? (
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-600" />
+                          )}
+                          <span className="text-gray-600">
+                            {split.user?.email}: {group.currency} {split.amount_owed.toFixed(2)}
+                            {split.is_paid && " ✓"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">
+                      {group.currency} {expense.amount.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Miembros */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Miembros del Grupo</CardTitle>
+          <CardDescription>
+            Personas que forman parte de este grupo
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="text-sm text-gray-500">
-            No hay gastos registrados todavía. (próximamente)
+            {group.member_count} miembro{group.member_count !== 1 ? 's' : ''} en el grupo
           </div>
         </CardContent>
       </Card>

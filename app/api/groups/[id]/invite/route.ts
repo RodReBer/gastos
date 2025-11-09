@@ -5,7 +5,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/server"
 // POST /api/groups/[id]/invite - Enviar invitación a un grupo
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -23,7 +23,7 @@ export async function POST(
       )
     }
 
-    const groupId = params.id
+    const { id: groupId } = await params
 
     // Verificar que el usuario sea miembro del grupo
     const { data: userData } = await supabase

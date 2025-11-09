@@ -5,7 +5,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/server"
 // GET /api/groups/[id] - Obtener detalles de un grupo
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -14,7 +14,7 @@ export async function GET(
     }
 
     const supabase = getSupabaseAdminClient()
-    const groupId = params.id
+    const { id: groupId } = await params
 
     // Obtener el ID del usuario desde la tabla users
     const { data: userData } = await supabase
