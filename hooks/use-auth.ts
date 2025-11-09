@@ -4,13 +4,18 @@ import useSWR from "swr"
 import { useRouter } from "next/navigation"
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url)
+  const res = await fetch(url, {
+    credentials: 'include', // Incluir cookies
+  })
+  
   if (!res.ok) {
     if (res.status === 401) {
+      // Si es 401, retornar usuario nulo en lugar de error
       return { user: null }
     }
     throw new Error("Failed to fetch user")
   }
+  
   return res.json()
 }
 
@@ -19,7 +24,8 @@ export function useAuth() {
   const { data, error, isLoading, mutate } = useSWR("/auth/profile", fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
-    shouldRetryOnError: false,
+    shouldRetryOnError: false, // No reintentar automáticamente
+    dedupingInterval: 2000, // Reducir llamadas duplicadas
   })
 
   const logout = () => {

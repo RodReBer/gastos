@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Upload, Camera, X } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
@@ -13,8 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { ocrService } from "@/lib/services/ocr-service-gpt4"
+import { FILE_CONFIG } from "@/lib/constants"
 
 interface ExpenseFormProps {
   groupId: string
@@ -39,7 +42,11 @@ const CATEGORIES = [
 export function ExpenseForm({ groupId, currency, onSuccess, onCancel }: ExpenseFormProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isScanning, setIsScanning] = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [date, setDate] = useState<Date>(new Date())
   const [formData, setFormData] = useState({
     description: "",
@@ -49,6 +56,87 @@ export function ExpenseForm({ groupId, currency, onSuccess, onCancel }: ExpenseF
     is_recurring: false,
     recurrence_interval: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
   })
+
+  const handleFileSelect = async (file: File) => {
+    if (file.size > FILE_CONFIG.MAX_FILE_SIZE) {
+      toast({
+        title: "Error",
+        description: "El archivo es muy grande (máximo 5MB)",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!FILE_CONFIG.ACCEPTED_FORMATS.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Formato inválido. Usa PNG, JPG o WEBP",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsScanning(true)
+    setUploadedFile(file)
+
+    try {
+      // Show preview
+      const reader = new FileReader()
+      reader.onload = (e) => setPreview(e.target?.result as string)
+      reader.readAsDataURL(file)
+
+      // Run OCR
+      const result = await ocrService.extractFromImage(file)
+
+      // Fill form with OCR results
+      if (result.vendor) {
+        setFormData((prev) => ({ ...prev, description: result.vendor || "" }))
+      }
+      if (result.amount) {
+        setFormData((prev) => ({ ...prev, amount: result.amount?.toString() || "" }))
+      }
+      if (result.date) {
+        const parsedDate = new Date(result.date)
+        if (!isNaN(parsedDate.getTime())) {
+          setDate(parsedDate)
+        }
+      }
+      if (result.category) {
+        setFormData((prev) => ({ ...prev, category: result.category || "other" }))
+      }
+
+      toast({
+        title: "Escaneo completado",
+        description: "Revisa los datos extraídos y ajusta si es necesario",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error al escanear",
+        description: error.message,
+        variant: "destructive",
+      })
+      setPreview(null)
+      setUploadedFile(null)
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFileSelect(file)
+    }
+  }
+
+  const clearFile = () => {
+    setPreview(null)
+    setUploadedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,6 +198,107 @@ export function ExpenseForm({ groupId, currency, onSuccess, onCancel }: ExpenseF
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Tabs para Manual / Escanear */}
+      <Tabs defaultValue="manual" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manual">Manual</TabsTrigger>
+          <TabsTrigger value="scan">Escanear / Subir</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="manual" className="space-y-4 mt-4">
+          {/* Contenido del formulario manual (original) */}
+        </TabsContent>
+
+        <TabsContent value="scan" className="space-y-4 mt-4">
+          {/* Opción de escanear/subir archivo */}
+          <div className="space-y-4">
+            <div className="border-2 border-dashed rounded-lg p-6 text-center">
+              {preview ? (
+                <div className="space-y-4">
+                  <div className="relative inline-block">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="max-h-64 rounded-lg mx-auto"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={clearFile}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {isScanning && (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-sm text-gray-600">
+                        Escaneando factura...
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-center gap-4">
+                    <Upload className="h-12 w-12 text-gray-400" />
+                    <Camera className="h-12 w-12 text-gray-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-2">
+                      Subir factura o recibo
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Sube una imagen y extraeremos los datos automáticamente
+                    </p>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isScanning}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Subir Archivo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const input = fileInputRef.current
+                        if (input) {
+                          input.setAttribute("capture", "environment")
+                          input.click()
+                        }
+                      }}
+                      disabled={isScanning}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Tomar Foto
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG o WEBP (máx. 5MB)
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Formulario común (se muestra siempre después de escanear o en manual) */}
       {/* Descripción */}
       <div className="space-y-2">
         <Label htmlFor="description">

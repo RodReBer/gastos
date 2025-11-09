@@ -1,8 +1,7 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React from "react"
+import { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -11,13 +10,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { FILE_CONFIG, API_ROUTES } from "@/lib/constants"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FILE_CONFIG, API_ROUTES, CURRENCIES } from "@/lib/constants"
 import { ocrService } from "@/lib/services/ocr-service-gpt4"
 import { Spinner } from "@/components/ui/spinner"
+import { Camera, Upload, X } from "lucide-react"
+import { useSettings } from "@/lib/contexts/settings-context"
 
 const scannerSchema = z.object({
   vendor_name: z.string().min(1, "Vendor name is required"),
   amount: z.coerce.number().min(0, "Amount must be positive"),
+  currency: z.string(),
   invoice_date: z.string().min(1, "Invoice date is required"),
   invoice_number: z.string().optional(),
   extracted_text: z.string().optional(),
@@ -34,6 +38,8 @@ export function ScannerForm({ onSuccess }: ScannerFormProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { currency: userCurrency } = useSettings()
 
   const form = useForm<ScannerFormData>({
     resolver: zodResolver(scannerSchema),

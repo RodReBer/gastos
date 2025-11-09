@@ -16,7 +16,7 @@ export async function GET(
       `client_id=${process.env.AUTH0_CLIENT_ID}&` +
       `redirect_uri=${encodeURIComponent(`${process.env.AUTH0_BASE_URL}/api/auth/callback`)}&` +
       `response_type=code&` +
-      `scope=openid%20profile%20email&` +
+      `scope=openid%20profile%20email%20offline_access&` +
       `state=${state}`
     
     console.log('Login redirect URL:', redirectUrl)
@@ -137,12 +137,15 @@ export async function GET(
       // Crear respuesta y establecer cookies
       const response = NextResponse.redirect(`${process.env.AUTH0_BASE_URL}/dashboard`)
       
-      // Guardar tokens en cookies seguras
+      // Guardar tokens en cookies seguras con maxAge de 7 días
+      const cookieMaxAge = 7 * 24 * 60 * 60 // 7 días en segundos
+      
       response.cookies.set('access_token', tokens.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: tokens.expires_in,
+        maxAge: cookieMaxAge,
+        path: '/',
       })
       
       if (tokens.id_token) {
@@ -150,7 +153,19 @@ export async function GET(
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
-          maxAge: tokens.expires_in,
+          maxAge: cookieMaxAge,
+          path: '/',
+        })
+      }
+      
+      // Si hay refresh token, guardarlo también
+      if (tokens.refresh_token) {
+        response.cookies.set('refresh_token', tokens.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: cookieMaxAge,
+          path: '/',
         })
       }
       
