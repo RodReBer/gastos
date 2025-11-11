@@ -1,13 +1,20 @@
-// API Route para OCR con Gemini (server-side)
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { getSession } from "@/lib/auth/session"
+import { rateLimit } from "@/lib/rate-limit"
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+
 export async function POST(req: NextRequest) {
   try {
-    // Verificar autenticación
+    const rateLimitResponse = rateLimit(req, 'ocr')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const session = await getSession()
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -18,6 +25,14 @@ export async function POST(req: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: "File size exceeds 10MB limit" }, { status: 400 })
+    }
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: "Invalid file type. Only JPEG, PNG, and WebP are allowed" }, { status: 400 })
     }
 
     console.log("[OCR API] 🚀 Procesando archivo:", file.name, file.type, file.size)

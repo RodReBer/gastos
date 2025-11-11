@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { CategoryChart } from "@/components/charts/category-chart"
+import { DashboardSkeleton } from "@/components/ui/skeleton-card"
 import Link from "next/link"
 import useSWR from "swr"
 import { fetcher } from "@/lib/utils/fetcher"
@@ -17,10 +18,14 @@ import { TrendingUp, TrendingDown, DollarSign, CreditCard, AlertCircle } from "l
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const { data: stats, mutate } = useSWR("/api/dashboard/stats", fetcher)
-  const { data: categoryData } = useSWR("/api/dashboard/categories", fetcher)
+  const { data: stats, mutate, isLoading: statsLoading } = useSWR("/api/dashboard/stats", fetcher)
+  const { data: categoryData, isLoading: categoryLoading } = useSWR("/api/dashboard/categories", fetcher)
   const [income, setIncome] = useState("")
   const [saving, setSaving] = useState(false)
+
+  if (statsLoading || categoryLoading) {
+    return <DashboardSkeleton />
+  }
 
   const handleSaveIncome = async () => {
     if (!income || parseFloat(income) <= 0) return

@@ -7,7 +7,7 @@ class BlobService {
       const filename = `invoices/${userId}/${Date.now()}-${file.name}`
 
       const blob = await put(filename, file, {
-        access: "private",
+        access: "public",
       })
 
       return blob.url
