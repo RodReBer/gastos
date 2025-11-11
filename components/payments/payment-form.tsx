@@ -20,7 +20,7 @@ const paymentSchema = z.object({
   payment_date: z.string().min(1, "Payment date is required"),
   payment_type: z.string().min(1, "Payment type is required"),
   amount_paid: z.coerce.number().min(0, "Amount must be positive"),
-  status: z.string().default("completed"),
+  status: z.string(),
   notes: z.string().optional(),
 })
 

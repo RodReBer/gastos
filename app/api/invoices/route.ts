@@ -2,9 +2,15 @@ import { getSession } from "@/lib/auth/session"
 import { getSupabaseAdminClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 import { invoiceService } from "@/lib/services/invoice-service"
+import { rateLimit } from "@/lib/rate-limit"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = rateLimit(req, 'api')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -25,6 +31,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = rateLimit(req, 'api')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
