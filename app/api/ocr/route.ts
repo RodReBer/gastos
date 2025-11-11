@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const base64 = buffer.toString("base64")
 
     // Usar Gemini 2.5 Flash (modelo actual con visión)
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
     })
 
@@ -98,11 +98,11 @@ Ejemplo de respuesta esperada:
       success: true,
       data: {
         text: `📄 Factura de ${extracted.vendor || "Proveedor"}
-📅 Fecha: ${extracted.date || "N/A"}
-🔢 Número: ${extracted.invoiceNumber || "N/A"}
-💰 Monto: ${extracted.currency || ""} ${extracted.amount || 0}
-🏷️ Categoría: ${extracted.category || "other"}
-📝 ${extracted.description || ""}${extracted.items && extracted.items.length > 0 ? `\n\n📦 Items (${extracted.items.length}):` + extracted.items.map((item: any) => `\n  • ${item.name} (x${item.quantity || 1}) - ${item.unit_price || 0}`).join('') : ''}`,
+ Fecha: ${extracted.date || "N/A"}
+ Número: ${extracted.invoiceNumber || "N/A"}
+ Monto: ${extracted.currency || ""} ${extracted.amount || 0}
+ Categoría: ${extracted.category || "other"}
+ ${extracted.description || ""}${extracted.items && extracted.items.length > 0 ? `\n\n Items (${extracted.items.length}):` + extracted.items.map((item: any) => `\n  • ${item.name} (x${item.quantity || 1}) - ${item.unit_price || 0}`).join('') : ''}`,
         confidence: 0.95,
         vendor: extracted.vendor || "",
         amount: parseFloat(extracted.amount) || 0,
